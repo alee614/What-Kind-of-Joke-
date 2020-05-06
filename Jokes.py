@@ -122,7 +122,13 @@ lemmas = [lemmatizer.lemmatize(w) for w in stemmed]
 input1 = " ".join(lemmas)
 
 query_vec = vectorizer.transform([input1])
-results = cosine_similarity(features_train, query_vec).reshape((-1,))
+
+logreg = LogisticRegression(max_iter=10000)
+logreg.fit(features_train, labels_train)
+logreg_query = logreg.predict(query_vec)
+print(logreg_query)
+
+
 
 '''
 rank = 1
@@ -135,16 +141,14 @@ for i in results.argsort()[-20:][::-1]:
             rank = rank + 1
 '''
 
-selected_index = results.argsort()[len(results) - 1]
-selected_code = df.iloc[selected_index, 2]
 
-
-text = df.loc[df['category_code'] == selected_code, 'body']
+text = df.loc[df['category_code'] == logreg_query[0], 'body']
 selected_features = vectorizer.fit_transform(text).toarray()
 query_2 = vectorizer.transform([input1])
 results = cosine_similarity(selected_features, query_2).reshape((-1,))
 joke_index = results.argsort()[len(results) - 1]
 joke = df_2.iloc[joke_index, 0]
+
 
 print("Get ready to laugh:")
 print(" ")
@@ -172,17 +176,21 @@ print("Accuracy of Naive Bayes: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std(
 print("Naive Bayes Model: ")
 print(classification_report(labels_test, predictions))
 
+
 logreg = LogisticRegression(max_iter=10000)
 logreg.fit(features_train, labels_train)
 logreg_pred = logreg.predict(features_test)
 
+logreg_query = logreg.predict(query_vec)
 
+X = vectorizer.fit_transform(df['body']).toarray()
 scores = cross_val_score(logreg, X, df['category_code'], cv=5)
 print(scores)
 print("Accuracy of Logistic Regression: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
 
 print('Logistic Regression Model: ')
 print(classification_report(labels_test, logreg_pred))
+
 
 
 forest = RandomForestClassifier(max_depth=10000)
